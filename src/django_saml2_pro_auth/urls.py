@@ -22,6 +22,6 @@ METADATA = r'^' + SAML_ROUTE + '/metadata/$'
 
 urlpatterns = [
     url(AUTH, views.saml_login, name='saml2_auth'),
-    url(AUTH, views.acs),
+    url(ACS, views.acs),
     url(METADATA, views.metadata, name='metadata'),
 ]
