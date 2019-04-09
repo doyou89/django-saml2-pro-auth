@@ -24,7 +24,7 @@ def saml_login(request):
         elif 'RelayState' in req['post_data']:
                 return HttpResponseRedirect(auth.redirect_to(req['post_data']['RelayState']))
         else:
-            redir = OneLogin_Saml2_Utils.get_self_url_no_query(req)
+            redir = OneLogin_Saml2_Utils.get_self_url(req)
             return HttpResponseRedirect(auth.login(return_to=redir))
     else:
         return HttpResponseRedirect(auth.login())
