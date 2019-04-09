@@ -1,18 +1,12 @@
 from django.conf import settings
-from django.http import (HttpResponse, HttpResponseRedirect,
-                         HttpResponseServerError)
+from django.http import (HttpResponse, HttpResponseRedirect, HttpResponseServerError)
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, REDIRECT_FIELD_NAME
 
-from onelogin.saml2.auth import OneLogin_Saml2_Auth
-from onelogin.saml2.settings import OneLogin_Saml2_Settings
 from onelogin.saml2.utils import OneLogin_Saml2_Utils
 
-from .utils import SAMLError, SAMLSettingsError
-from .utils import (get_provider_config,
-                    init_saml_auth, prepare_django_request)
-
-
+from django_saml2_pro_auth.utils import SAMLError, SAMLSettingsError
+from django_saml2_pro_auth.utils import (get_provider_config, init_saml_auth, prepare_django_request)
 
 
 @csrf_exempt
@@ -21,40 +15,7 @@ def saml_login(request):
     req = prepare_django_request(request)
     auth = init_saml_auth(req)
 
-    if 'acs' in req['get_data']:
-        # IDP initiated
-        request_id = None
-
-        if 'AuthNRequestID' in request.session:
-            request_id = request.session['AuthNRequestID']
-
-        auth.process_response(request_id=request_id)
-        errors = auth.get_errors()
-        not_auth_warn = not auth.is_authenticated()
-
-        if not errors:
-            if 'AuthNRequestID' in request.session:
-                del request.session['AuthNRequestID']
-
-            request.session['samlUserdata'] = auth.get_attributes()
-            request.session['samlNameId'] = auth.get_nameid()
-            request.session['samlSessionIndex'] = auth.get_session_index()
-            attributes = request.session['samlUserdata'].items()
-            user = authenticate(request=request)
-            if user is None:
-                if hasattr(settings, 'SAML_FAIL_REDIRECT'):
-                    return HttpResponseRedirect(settings.SAML_FAIL_REDIRECT)
-                raise SAMLError('FAILED TO AUTHENTICATE SAML USER WITH BACKEND')
-            login(request, user)
-            if hasattr(settings, 'SAML_REDIRECT'):
-                return HttpResponseRedirect(settings.SAML_REDIRECT)
-            elif 'RelayState' in req['post_data'] and OneLogin_Saml2_Utils.get_self_url(req) != req['post_data']['RelayState']:
-                return HttpResponseRedirect(auth.redirect_to(req['post_data']['RelayState']))
-            else:
-                return HttpResponseRedirect(OneLogin_Saml2_Utils.get_self_url(req))
-        else:
-            raise SAMLError('ERRORS FOUND IN SAML REQUEST: %s' % errors)
-    elif 'provider' in req['get_data']:
+    if 'provider' in req['get_data']:
         # SP Initiated
         if hasattr(settings, 'SAML_REDIRECT'):
             return HttpResponseRedirect(auth.login(return_to=settings.SAML_REDIRECT))
@@ -63,10 +24,51 @@ def saml_login(request):
         elif 'RelayState' in req['post_data']:
                 return HttpResponseRedirect(auth.redirect_to(req['post_data']['RelayState']))
         else:
-            redir = OneLogin_Saml2_Utils.get_self_url(req)
+            redir = OneLogin_Saml2_Utils.get_self_url_no_query(req)
             return HttpResponseRedirect(auth.login(return_to=redir))
     else:
         return HttpResponseRedirect(auth.login())
+
+
+@csrf_exempt
+def acs(request):
+    attributes = None
+    req = prepare_django_request(request)
+    auth = init_saml_auth(req)
+
+    # IDP initiated
+    request_id = None
+
+    if 'AuthNRequestID' in request.session:
+        request_id = request.session['AuthNRequestID']
+
+    auth.process_response(request_id=request_id)
+    errors = auth.get_errors()
+    not_auth_warn = not auth.is_authenticated()
+
+    if not errors:
+        if 'AuthNRequestID' in request.session:
+            del request.session['AuthNRequestID']
+
+        request.session['samlUserdata'] = auth.get_attributes()
+        request.session['samlNameId'] = auth.get_nameid()
+        request.session['samlSessionIndex'] = auth.get_session_index()
+        attributes = request.session['samlUserdata'].items()
+        user = authenticate(request=request)
+        if user is None:
+            if hasattr(settings, 'SAML_FAIL_REDIRECT'):
+                return HttpResponseRedirect(settings.SAML_FAIL_REDIRECT)
+            raise SAMLError('FAILED TO AUTHENTICATE SAML USER WITH BACKEND')
+        login(request, user)
+        if hasattr(settings, 'SAML_REDIRECT'):
+            return HttpResponseRedirect(settings.SAML_REDIRECT)
+        elif 'RelayState' in req['post_data'] and OneLogin_Saml2_Utils.get_self_url(req) != req['post_data']['RelayState']:
+            return HttpResponseRedirect(auth.redirect_to(req['post_data']['RelayState']))
+        else:
+            return HttpResponseRedirect(OneLogin_Saml2_Utils.get_self_url(req))
+    else:
+        raise SAMLError('ERRORS FOUND IN SAML REQUEST: %s' % errors)
+
 
 def metadata(request):
     req = prepare_django_request(request)

@@ -23,12 +23,13 @@ except RuntimeError:
 settings.SAML_ROUTE = '/sso/saml'
 settings.ROOT_URLCONF = 'django_saml2_pro_auth.urls'
 
-from django_saml2_pro_auth.urls import urlpatterns, SAML_ROUTE, AUTH, METADATA
+from django_saml2_pro_auth.urls import urlpatterns, SAML_ROUTE, AUTH, ACS, METADATA
 
 class TestURLS(TestCase):
     def test_url_constants(self):
         self.assertEqual(SAML_ROUTE, 'sso/saml')
         self.assertEqual(AUTH, '^sso/saml/$')
+        self.assertEqual(ACS, '^sso/saml/ACS/$')
         self.assertEqual(METADATA, '^sso/saml/metadata/$')
 
 
@@ -38,6 +39,7 @@ class TestURLS(TestCase):
 
     def test_url_resolving_with_start_forward_slash(self):
         self.assertEqual(resolve('/sso/saml/').view_name, 'saml2_auth')
+        self.assertEqual(resolve('/sso/saml/acs/').view_name, 'acs')
         self.assertEqual(resolve('/sso/saml/metadata/').view_name, 'metadata')
 
     @override_settings(SAML_ROUTE='/sso/saml/')
@@ -48,6 +50,7 @@ class TestURLS(TestCase):
     @override_settings(SAML_ROUTE='/sso/saml/')
     def test_url_resolving_with_end_forward_slash(self):
         self.assertEqual(resolve('/sso/saml/').view_name, 'saml2_auth')
+        self.assertEqual(resolve('/sso/saml/acs/').view_name, 'acs')
         self.assertEqual(resolve('/sso/saml/metadata/').view_name, 'metadata')
 
     @override_settings(SAML_ROUTE='sso/saml')
@@ -58,6 +61,7 @@ class TestURLS(TestCase):
     @override_settings(SAML_ROUTE='sso/saml')
     def test_url_resolving_with_no_rl_slashes(self):
         self.assertEqual(resolve('/sso/saml/').view_name, 'saml2_auth')
+        self.assertEqual(resolve('/sso/saml/acs/').view_name, 'acs')
         self.assertEqual(resolve('/sso/saml/metadata/').view_name, 'metadata')
 
 

@@ -17,9 +17,11 @@ if SAML_ROUTE.strip()[0] == '/':
     SAML_ROUTE = SAML_ROUTE.lstrip('/')
 
 AUTH = r'^' + SAML_ROUTE + '/$'
+ACS = r'^' + SAML_ROUTE + '/acs/$'
 METADATA = r'^' + SAML_ROUTE + '/metadata/$'
 
 urlpatterns = [
     url(AUTH, views.saml_login, name='saml2_auth'),
+    url(AUTH, views.acs),
     url(METADATA, views.metadata, name='metadata'),
 ]
