@@ -11,7 +11,6 @@ from django_saml2_pro_auth.utils import (get_provider_config, init_saml_auth, pr
 
 @csrf_exempt
 def saml_login(request):
-    attributes = None
     req = prepare_django_request(request)
     auth = init_saml_auth(req)
 
@@ -24,7 +23,7 @@ def saml_login(request):
         elif 'RelayState' in req['post_data']:
                 return HttpResponseRedirect(auth.redirect_to(req['post_data']['RelayState']))
         else:
-            redir = OneLogin_Saml2_Utils.get_self_url(req)
+            redir = OneLogin_Saml2_Utils.get_self_url(req) + request.get_full_path()
             return HttpResponseRedirect(auth.login(return_to=redir))
     else:
         return HttpResponseRedirect(auth.login())
